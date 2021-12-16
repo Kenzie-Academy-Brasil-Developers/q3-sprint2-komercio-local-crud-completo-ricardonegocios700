@@ -1,4 +1,7 @@
-# Seu código aqui
+from flask import Flask, jsonify, request
+
+app = Flask(__name__)
+
 produtos = [
     {"id": 1, "name": "sabonete", "price": 5.99},
     {"id": 2, "name": "perfume", "price": 39.90},
@@ -31,3 +34,75 @@ produtos = [
     {"id": 29, "name": "coberta", "price": 55.99},
     {"id": 30, "name": "sofa", "price": 600.15}
 ]
+
+
+def proximo_id():
+    result = 0
+    for produto in produtos:
+        if produto["id"] > result:
+            result = produto["id"]
+    return result + 1
+
+@app.route("/")
+def home():
+    return f"<h2>Seja bem vindo à home </h2>"
+
+@app.get("/products")
+def list_products():
+    return jsonify(produtos), 200
+
+@app.get("/products/<product_id>")
+def get(product_id: int):
+    result = [ produto for produto in produtos if produto["id"] == int(product_id)]
+    return jsonify(result), 200
+
+@app.post("/products")
+def create():
+    data = request.get_json()
+    name = data["name"]
+    price = data["price"]
+    proximo = proximo_id()
+    new_item = {
+            "id": proximo,
+            "name": name, 
+            "price": price, 
+        }
+    produtos.append(new_item)
+    result = [ produto for produto in produtos if produto["id"] == int(proximo)]
+    return jsonify(result), 201
+
+@app.patch("/products/<product_id>")
+def update(product_id: int):
+    data = request.get_json()
+    upd_item = {}
+    #ficou sem uso, acredito que para enviar ao DB seria usado
+    #upd_item['id'] = product_id
+
+    for produto in produtos:
+        if produto.get('id') == int(product_id):
+            if data.get('price', None) != None:
+                upd_item['price'] = data['price']
+            # else:
+            #     upd_item['price'] = produto.get('price')
+
+            if data.get('name', None) != None:
+                upd_item['name'] = data['name']
+            # else:
+            #     upd_item['name'] = produto.get('name')
+            
+            # olhando agora eu teria colocado esse código dentro do if data.get...
+            #produto["name"] = upd_item["name"]
+            #produto["price"] = upd_item["price"]
+
+            # como eu criei o upd_item, é interessante um metodo de update()
+            # acredito que poderia reduzir a cadeia de if, mas fica para qdo tiver +acostumado
+            produto.update(upd_item)
+
+    return jsonify(None), 204
+
+@app.delete("/products/<int:product_id>")
+def delete(product_id: int):
+    for sequencia, produto in enumerate(produtos):
+        if produto.get('id') == product_id:
+            produtos.pop(sequencia)
+    return jsonify(None), 204
